@@ -21,7 +21,7 @@ from django.utils.translation import gettext, gettext_noop
 from wagtail.models import Page
 from wagtail.fields import RichTextField
 from wagtail.admin.panels import (FieldPanel, MultiFieldPanel,
-        PageChooserPanel)
+        PageChooserPanel, ObjectList)
 from wagtail.contrib.routable_page.models import RoutablePageMixin, route
 from wagtail.search import index
 from wagtail.admin.forms import WagtailAdminPageForm
@@ -185,23 +185,22 @@ class HiddenNumDaysPanel(FieldPanel):
             return data.get(name, "1")
 
     def __init__(self, field_name="num_days", *args, **kwargs):
+        # FieldPanel.__init__ always sets self.widget from its widget=
+        # argument (defaulting to None), so the class-level widget above
+        # has to be forwarded explicitly here.
+        kwargs.setdefault('widget', self.widget)
         super().__init__(field_name, *args, **kwargs)
 
-    def render_as_object(self):
-        return super().render_as_object() if self._show() else ""
-
-    def render_as_field(self):
-        return super().render_as_field() if self._show() else ""
-
-    def _show(self):
-        page = getattr(self, 'instance', None)
-        if isinstance(page, (MultidayRecurringEventPage,
-                             RescheduleMultidayEventPage)):
-            retval = True
-        else:
+    class BoundPanel(FieldPanel.BoundPanel):
+        def is_shown(self):
+            if not super().is_shown():
+                return False
+            page = self.instance
+            if isinstance(page, (MultidayRecurringEventPage,
+                                 RescheduleMultidayEventPage)):
+                return True
             numDays = getattr(page, 'num_days', 0)
-            retval = numDays > 1
-        return retval
+            return numDays > 1
 
 class RecurringEventPageForm(EventPageForm):
     def _checkStartBeforeEnd(self, cleaned_data):
@@ -1334,12 +1333,12 @@ class PostponementPage(RoutablePageMixin, RescheduleEventBase, CancellationPage)
         Copy across field values from the recurring event parent.
         """
         super()._copyFieldsFromParent(parent)
-        parentFields = set()
-        for panel in parent.content_panels:
-            parentFields.update(panel.required_fields())
-        pageFields = set()
-        for panel in self.content_panels:
-            pageFields.update(panel.required_fields())
+        parentFields = set(ObjectList(parent.content_panels)
+                           .bind_to_model(type(parent))
+                           .get_form_options().get('fields', []))
+        pageFields = set(ObjectList(self.content_panels)
+                        .bind_to_model(type(self))
+                        .get_form_options().get('fields', []))
         commonFields = parentFields & pageFields
         for name in commonFields:
             setattr(self, name, getattr(parent, name))

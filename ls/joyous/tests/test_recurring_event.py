@@ -278,19 +278,19 @@ class TestTZ(TestCase):
     @timezone.override("America/Los_Angeles")
     def testCurrentLocalDt(self):
         when = self.event._current_datetime_from
-        self.assertEqual(when.tzinfo.zone, "America/Los_Angeles")
+        self.assertEqual(str(when.tzinfo), "America/Los_Angeles")
         self.assertEqual(when.weekday(), calendar.TUESDAY)
 
     @timezone.override("America/Los_Angeles")
     def testFutureLocalDt(self):
         when = self.event._future_datetime_from
-        self.assertEqual(when.tzinfo.zone, "America/Los_Angeles")
+        self.assertEqual(str(when.tzinfo), "America/Los_Angeles")
         self.assertEqual(when.weekday(), calendar.TUESDAY)
 
     @timezone.override("Pacific/Auckland")
     def testPastLocalDt(self):
         when = self.event._past_datetime_from
-        self.assertEqual(when.tzinfo.zone, "Pacific/Auckland")
+        self.assertEqual(str(when.tzinfo), "Pacific/Auckland")
         self.assertEqual(when.weekday(), calendar.WEDNESDAY)
 
     @timezone.override("Pacific/Kiritimati")

@@ -279,12 +279,13 @@ class TestCalendarPageForm(TestCase):
     def testImportPanel(self):
         CalendarPageForm.registerImportHandler(Mock())
         panel = CalendarPage.settings_panels[-1]
-        self.assertFalse(panel._show())
-        panel.instance = self.page
-        panel.request  = self.request
-        self.assertFalse(panel._show())
+        bound_panel = panel.bind_to_model(CalendarPage).get_bound_panel()
+        self.assertFalse(panel._show(bound_panel))
+        bound_panel = panel.bind_to_model(CalendarPage).get_bound_panel(
+            instance=self.page, request=self.request)
+        self.assertFalse(panel._show(bound_panel))
         setattr(self.page, '__joyous_edit_request', self.request)
-        self.assertTrue(panel._show())
+        self.assertTrue(panel._show(bound_panel))
         delattr(self.page, '__joyous_edit_request')
 
     def testSave(self):

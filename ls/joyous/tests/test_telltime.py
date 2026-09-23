@@ -16,12 +16,12 @@ class TestLocalTimes(TestCase):
     def testGetAwareDatetime(self):
         when = getAwareDatetime(dt.date(1999,12,1), dt.time(2),
                                 pytz.timezone("Asia/Kuala_Lumpur"))
-        self.assertEqual(when.tzinfo.zone, "Asia/Kuala_Lumpur")
+        self.assertEqual(str(when.tzinfo), "Asia/Kuala_Lumpur")
         self.assertEqual(when.date(), dt.date(1999,12,1))
         self.assertEqual(when.time(), dt.time(2))
         when = getAwareDatetime(dt.date(2004,2,15), None,
                                 pytz.timezone("Australia/Melbourne"))
-        self.assertEqual(when.tzinfo.zone, "Australia/Melbourne")
+        self.assertEqual(str(when.tzinfo), "Australia/Melbourne")
         self.assertEqual(when.date(), dt.date(2004,2,15))
         self.assertEqual(when.time(), dt.time.max)
 
@@ -33,12 +33,12 @@ class TestLocalTimes(TestCase):
         self.assertEqual(when, datetimetz(2003,9,2,10,45,1))
         when = getLocalDatetime(dt.date(2017,3,23), dt.time(18),
                                 pytz.timezone("Europe/Prague"))
-        self.assertEqual(when.tzinfo.zone, "Asia/Tokyo")
+        self.assertEqual(str(when.tzinfo), "Asia/Tokyo")
         self.assertEqual(when.date(), dt.date(2017,3,24))
         self.assertEqual(when.time(), dt.time(2)),
         when = getLocalDatetime(dt.date(2006,6,22), None,
                                 pytz.timezone("America/Toronto"), dt.time(0))
-        self.assertEqual(when.tzinfo.zone, "Asia/Tokyo")
+        self.assertEqual(str(when.tzinfo), "Asia/Tokyo")
         self.assertEqual(when.date(), dt.date(2006,6,22))
         self.assertEqual(when.time(), dt.time(0))
 

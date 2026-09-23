@@ -9,6 +9,7 @@ from django.test import TestCase
 from django.contrib.auth.models import User
 from django.utils import timezone
 from wagtail.models import Page, PageViewRestriction
+from wagtail.admin.panels import ObjectList
 from ls.joyous.models import (EventBase, removeContentPanels, SimpleEventPage,
             MultidayEventPage, RecurringEventPage, MultidayRecurringEventPage,
             PostponementPage, RescheduleMultidayEventPage)
@@ -25,9 +26,9 @@ class Test(TestCase):
                     MultidayRecurringEventPage, PostponementPage,
                     RescheduleMultidayEventPage):
             with self.subTest(classname = cls.__name__):
-                self.assertFalse(any(field in removed
-                                     for panel in cls.content_panels
-                                     for field in panel.required_fields()))
+                fields = (ObjectList(cls.content_panels).bind_to_model(cls)
+                          .get_form_options().get('fields', []))
+                self.assertFalse(any(field in removed for field in fields))
 
 # ------------------------------------------------------------------------------
 # ------------------------------------------------------------------------------

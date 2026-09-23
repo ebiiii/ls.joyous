@@ -94,7 +94,12 @@ def getAwareDatetime(date, time, tz, timeDefault=dt.time.max):
     datetime = dt.datetime.combine(date, time)
     # arbitary rule to handle DST transitions:
     # if daylight savings causes an error then use standard time
-    datetime = timezone.make_aware(datetime, tz, is_dst=False)
+    if hasattr(tz, "localize"):
+        # pytz timezone: Django's make_aware() no longer special-cases pytz,
+        # so localize directly to keep the is_dst=False disambiguation
+        datetime = tz.localize(datetime, is_dst=False)
+    else:
+        datetime = timezone.make_aware(datetime, tz)
     return datetime
 
 def todayUtc():

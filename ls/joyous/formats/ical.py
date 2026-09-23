@@ -281,8 +281,7 @@ def _addPage(request, parent, page):
     parent.add_child(instance=page)
 
 def _saveRevision(request, page):
-    revision = page.save_revision(request.user,
-                                  bool(request.POST.get('action-submit')))
+    revision = page.save_revision(request.user)
     if bool(request.POST.get('action-publish')):
         revision.publish()
 
@@ -363,7 +362,8 @@ class vSmart(vText):
             retval = base64.b64decode(retval).decode(self.encoding, 'ignore')
         return retval
 
-from icalendar.cal import types_factory
+from icalendar.prop import TypesFactory
+types_factory = TypesFactory.instance()
 types_factory['date']      = vDt
 types_factory['date-time'] = vDt
 types_factory['text']      = vSmart

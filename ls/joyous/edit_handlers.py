@@ -1,5 +1,5 @@
 # ------------------------------------------------------------------------------
-# Wagtail 2.x style EditHandlers
+# Wagtail 3.x+ style Panels
 # ------------------------------------------------------------------------------
 from django.conf import settings
 from django.utils import timezone
@@ -19,21 +19,29 @@ class TZDatePanel(FieldPanel):
     Will display the timezone of the date if it is not the current TZ
     """
     widget = AdminDateInput
-    object_template = "joyous/edit_handlers/tz_date_object.html"
 
-    def on_instance_bound(self):
-        super().on_instance_bound()
-        if not self.form:
-            # wait for the form to be set, it will eventually be
-            return
-        localTZ = timezone.get_current_timezone()
-        localTZName = timezone._get_timezone_name(localTZ)
-        myTZ = getattr(self.instance, "tz", localTZ)
-        myTZName = timezone._get_timezone_name(myTZ)
-        if myTZName != localTZName:
-            self.exceptionTZ = myTZName
-        else:
+    def __init__(self, *args, **kwargs):
+        # FieldPanel.__init__ always sets self.widget from its widget=
+        # argument (defaulting to None), so the class-level widget above
+        # has to be forwarded explicitly here for subclasses to keep it.
+        kwargs.setdefault('widget', self.widget)
+        super().__init__(*args, **kwargs)
+
+    class BoundPanel(FieldPanel.BoundPanel):
+        template_name = "joyous/edit_handlers/tz_date_field.html"
+
+        def __init__(self, **kwargs):
+            super().__init__(**kwargs)
             self.exceptionTZ = None
+            if self.form is None:
+                # wait for the form to be set, it will eventually be
+                return
+            localTZ = timezone.get_current_timezone()
+            localTZName = timezone._get_timezone_name(localTZ)
+            myTZ = getattr(self.instance, "tz", localTZ)
+            myTZName = timezone._get_timezone_name(myTZ)
+            if myTZName != localTZName:
+                self.exceptionTZ = myTZName
 
 # ------------------------------------------------------------------------------
 class ExceptionDatePanel(TZDatePanel):
@@ -42,15 +50,16 @@ class ExceptionDatePanel(TZDatePanel):
     """
     widget = ExceptionDateInput
 
-    def on_instance_bound(self):
-        super().on_instance_bound()
-        if not self.form:
-            # wait for the form to be set, it will eventually be
-            return
-        if not self.instance.overrides:
-            return
-        widget = self.form[self.field_name].field.widget
-        widget.overrides_repeat = self.instance.overrides_repeat
+    class BoundPanel(TZDatePanel.BoundPanel):
+        def __init__(self, **kwargs):
+            super().__init__(**kwargs)
+            if self.form is None:
+                # wait for the form to be set, it will eventually be
+                return
+            if not self.instance.overrides:
+                return
+            widget = self.form[self.field_name].field.widget
+            widget.overrides_repeat = self.instance.overrides_repeat
 
 # ------------------------------------------------------------------------------
 def _add12hrFormats():
@@ -90,12 +99,16 @@ class TimePanel(FieldPanel):
     else:
         widget = AdminTimeInput
 
+    def __init__(self, *args, **kwargs):
+        kwargs.setdefault('widget', self.widget)
+        super().__init__(*args, **kwargs)
+
 # ------------------------------------------------------------------------------
 try:
     # Use wagtailgmaps for location if it is installed
     # but don't depend upon it
     settings.INSTALLED_APPS.index('wagtailgmaps')
-    from wagtailgmaps.edit_handlers import MapFieldPanel
+    from wagtailgmaps.panels import MapFieldPanel
     MapFieldPanel.UsingWagtailGMaps = True
 except (ValueError, ImportError):       # pragma: no cover
     MapFieldPanel = FieldPanel
@@ -103,33 +116,36 @@ except (ValueError, ImportError):       # pragma: no cover
 # ------------------------------------------------------------------------------
 class ConcealedPanel(MultiFieldPanel):
     """
-    A panel that can be hidden
+    A panel that can be hidden.  Subclasses should override _show(bound_panel)
+    to decide whether the panel is visible for that request/instance, e.g.
+
+        class Panel(ConcealedPanel):
+            def _show(self, bound_panel):
+                return bound_panel.instance.some_condition
     """
     def __init__(self, children, heading, classname='', help_text=''):
         super().__init__(children, '', classname, '')
         self._heading   = heading
         self._help_text = help_text
 
-    def clone(self):
-        return self.__class__(children=self.children,
-                              heading=self._heading,
-                              classname=self.classname,
-                              help_text=self._help_text)
+    def clone_kwargs(self):
+        return dict(children=self.children,
+                    heading=self._heading,
+                    classname=self.classname,
+                    help_text=self._help_text)
 
-    def on_instance_bound(self):
-        super().on_instance_bound()
-        if not self.request:
-            # wait for the request to be set, it will eventually be
-            return
-        if self._show():
-            self.heading   = self._heading
-            self.help_text = self._help_text
-
-    def render(self):
-        return super().render() if self._show() else ""
-
-    def _show(self):
+    def _show(self, bound_panel):
         return False
+
+    class BoundPanel(MultiFieldPanel.BoundPanel):
+        def __init__(self, **kwargs):
+            super().__init__(**kwargs)
+            if self.panel._show(self):
+                self.heading   = self.panel._heading
+                self.help_text = self.panel._help_text
+
+        def is_shown(self):
+            return self.panel._show(self)
 
 # ------------------------------------------------------------------------------
 # ------------------------------------------------------------------------------

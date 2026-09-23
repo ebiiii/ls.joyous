@@ -41,8 +41,8 @@ class CalendarPageForm(BorgPageForm):
     @classmethod
     def registerImportHandler(cls, handler):
         class Panel(ConcealedPanel):
-            def _show(self):
-                page = getattr(self, 'instance', None)
+            def _show(self, bound_panel):
+                page = getattr(bound_panel, 'instance', None)
                 if not page:
                     return False
                 hasReq = hasattr(page, '__joyous_edit_request')
@@ -50,7 +50,7 @@ class CalendarPageForm(BorgPageForm):
                     return False
                 # only a user with edit and publishing rights should be able
                 # to import iCalendar files
-                perms = page.permissions_for_user(self.request.user)
+                perms = page.permissions_for_user(bound_panel.request.user)
                 return perms.can_publish() and perms.can_edit()
 
         cls.importHandler = handler
@@ -73,8 +73,8 @@ class CalendarPageForm(BorgPageForm):
     @classmethod
     def registerExportHandler(cls, handler):
         class Panel(ConcealedPanel):
-            def _show(self):
-                page = getattr(self, 'instance', None)
+            def _show(self, bound_panel):
+                page = getattr(bound_panel, 'instance', None)
                 return page and page.url is not None and page.live
 
         cls.exportHandler = handler

@@ -12,6 +12,13 @@ from ..models import (SimpleEventPage, MultidayEventPage, RecurringEventPage,
 from ..utils.telltime import getAwareDatetime
 
 # ------------------------------------------------------------------------------
+def _zoneName(tz):
+    """
+    Get the IANA zone name from a pytz or zoneinfo tzinfo object
+    """
+    return getattr(tz, 'zone', None) or getattr(tz, 'key', None)
+
+# ------------------------------------------------------------------------------
 class GoogleCalendarHandler:
     """Redirect to a new Google Calendar event"""
     def serve(self, page, request, *args, **kwargs):
@@ -58,8 +65,8 @@ class SimpleGEvent(GEvent):
         dtstart = getAwareDatetime(page.date, page.time_from, page.tz, dt.time.min)
         dtend   = getAwareDatetime(page.date, page.time_to, page.tz, dt.time.max)
         gevent.set('dates', vPeriod((dtstart, dtend)).to_ical().decode())
-        if page.tz != pytz.utc:
-            gevent.set('ctz', page.tz.zone)
+        if _zoneName(page.tz) != 'UTC':
+            gevent.set('ctz', _zoneName(page.tz))
         return gevent
 
 # ------------------------------------------------------------------------------
@@ -70,8 +77,8 @@ class MultidayGEvent(GEvent):
         dtstart = getAwareDatetime(page.date_from, page.time_from, page.tz, dt.time.min)
         dtend   = getAwareDatetime(page.date_to, page.time_to, page.tz, dt.time.max)
         gevent.set('dates', vPeriod((dtstart, dtend)).to_ical().decode())
-        if page.tz != pytz.utc:
-            gevent.set('ctz', page.tz.zone)
+        if _zoneName(page.tz) != 'UTC':
+            gevent.set('ctz', _zoneName(page.tz))
         return gevent
 
 # ------------------------------------------------------------------------------
@@ -83,8 +90,8 @@ class RecurringGEvent(GEvent):
         dtstart = page._getMyFirstDatetimeFrom() or minDt
         dtend   = page._getMyFirstDatetimeTo()   or minDt
         gevent.set('dates', vPeriod((dtstart, dtend)).to_ical().decode())
-        if page.tz != pytz.utc:
-            gevent.set('ctz', page.tz.zone)
+        if _zoneName(page.tz) != 'UTC':
+            gevent.set('ctz', _zoneName(page.tz))
         gevent.set('recur', "RRULE:" + page.repeat._getRrule())
         return gevent
 

@@ -1,0 +1,7 @@
+{% load wagtailadmin_tags i18n %}
+{% include "wagtailadmin/shared/field.html" with show_label=False help_text=self.help_text %}
+{% if self.exceptionTZ %}
+<p class="help">
+  <b>{% trans "Time Zone" %}: </b>{{ self.exceptionTZ }}
+</p>
+{% endif %}

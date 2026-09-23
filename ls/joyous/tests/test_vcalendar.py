@@ -142,21 +142,22 @@ class Test(TestCase):
         self.calendar.add_child(instance=page)
         page.save_revision().publish()
         vcal = VCalendar.fromPage(page, self._getRequest("/events/pet-show/"))
+        vtz = vcal.walk("VTIMEZONE")[0]
+        self.assertEqual(str(vtz['TZID']), "Australia/Sydney")
+        for sub in vtz.standard:
+            if str(sub.get('TZNAME')) == "AEST":
+                self.assertEqual(sub['TZOFFSETTO'].td, dt.timedelta(hours=10))
+                break
+        else:
+            self.fail("No AEST segment found in {}".format(vtz.to_ical()))
+        for sub in vtz.daylight:
+            if str(sub.get('TZNAME')) == "AEDT":
+                self.assertEqual(sub['TZOFFSETFROM'].td, dt.timedelta(hours=10))
+                self.assertEqual(sub['TZOFFSETTO'].td,   dt.timedelta(hours=11))
+                break
+        else:
+            self.fail("No AEDT segment found in {}".format(vtz.to_ical()))
         export = vcal.to_ical()
-        aest = b"\r\n".join([
-                 b"BEGIN:STANDARD",
-                 b"DTSTART;VALUE=DATE-TIME:19870315T020000",
-                 b"TZNAME:AEST",
-                 b"TZOFFSETFROM:+1100",
-                 b"TZOFFSETTO:+1000",
-                 b"END:STANDARD", ])
-        aedt  = b"\r\n".join([
-                 b"BEGIN:DAYLIGHT",
-                 b"DTSTART;VALUE=DATE-TIME:19871025T030000",
-                 b"TZNAME:AEDT",
-                 b"TZOFFSETFROM:+1000",
-                 b"TZOFFSETTO:+1100",
-                 b"END:DAYLIGHT", ])
         props = [b"SUMMARY:Pet Show",
                  b"DTSTART;TZID=Australia/Sydney:19870605T110000",
                  b"DTEND;TZID=Australia/Sydney:19870605T173000",
@@ -167,9 +168,7 @@ class Test(TestCase):
                  b"DESCRIPTION:",
                  b"LAST-MODIFIED:20180512T040000Z",
                  b"LOCATION:",
-                 b"URL:http://joy.test/events/pet-show/",
-                 aest,
-                 aedt]
+                 b"URL:http://joy.test/events/pet-show/"]
         for prop in props:
             with self.subTest(prop=prop.split(b'\r\n',1)[0]):
                 self.assertIn(prop, export)
@@ -246,7 +245,9 @@ class Test(TestCase):
         page.add_child(instance=closedHols)
         closedHols.save_revision().publish()
         vcal = VCalendar.fromPage(page, self._getRequest("/events/chess/"))
-        export = vcal.to_ical()
+        # unfold RFC5545 line continuations, so matches don't depend on
+        # exactly where the line-folding happens to wrap
+        export = vcal.to_ical().replace(b"\r\n ", b"")
         props = [b"SUMMARY:Chess",
                  b"DTSTART;TZID=Asia/Tokyo:20200101T12000",
                  b"DTEND;TZID=Asia/Tokyo:20200101T13000",
@@ -486,7 +487,7 @@ class Test(TestCase):
         events = SimpleEventPage.events.child_of(self.calendar)            \
                                        .filter(date=dt.date(2018,4,7)).all()
         self.assertEqual(len(events), 1)
-        self.assertEqual(events[0].tz.zone, "Asia/Tokyo")
+        self.assertEqual(str(events[0].tz), "Asia/Tokyo")
         msgs = list(messages.get_messages(request))
         self.assertEqual(len(msgs), 1)
         self.assertEqual(msgs[0].level, messages.WARNING)

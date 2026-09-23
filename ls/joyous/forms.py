@@ -38,6 +38,11 @@ class BorgPageForm(WagtailAdminPageForm):
 
     def save(self, commit=True):
         if self.assimilated:
+            if not hasattr(self.assimilated, 'cleaned_data'):
+                # clean() (which normally sets this) is only called via
+                # full_clean(), so make sure it is set even if save() is
+                # called on a form that was never validated
+                self.assimilated.cleaned_data = getattr(self, 'cleaned_data', {})
             page = self.assimilated.save(commit)
         else:
             page = super().save(commit)

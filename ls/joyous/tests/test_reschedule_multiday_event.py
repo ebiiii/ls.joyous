@@ -9,6 +9,7 @@ from django_bs_test import TestCase
 from django.contrib.auth.models import User
 from django.utils import timezone
 from wagtail.models import Page
+from wagtail.admin.panels import ObjectList
 from wagtail.test.utils.form_data import nested_form_data, rich_text
 from ls.joyous.models import (GeneralCalendarPage,
         MultidayRecurringEventPage, RescheduleMultidayEventPage)
@@ -74,9 +75,9 @@ class Test(TestCase):
         RescheduleMultidayEventPage._removeContentPanels("website")
         removed = ("tz", "location", "website")
         panels = RescheduleMultidayEventPage.content_panels
-        self.assertFalse(any(field in removed
-                             for panel in panels
-                             for field in panel.required_fields()))
+        fields = (ObjectList(panels).bind_to_model(RescheduleMultidayEventPage)
+                  .get_form_options().get('fields', []))
+        self.assertFalse(any(field in removed for field in fields))
 
     @freeze_timetz("1990-01-11 18:00")
     def testStatus(self):

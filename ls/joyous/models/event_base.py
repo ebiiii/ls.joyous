@@ -40,7 +40,7 @@ def _filterContentPanels(panels, remove):
     for panel in panels:
         if isinstance(panel, FieldPanel) and panel.field_name in remove:
             continue
-        elif isinstance(panel):
+        elif hasattr(panel, 'children'):
             panel.children = _filterContentPanels(panel.children, remove)
         retval.append(panel)
     return retval

@@ -114,7 +114,7 @@ END:VCALENDAR""")
         self.assertEqual(event.date,       dt.date(2018,7,24))
         self.assertEqual(event.time_from,  dt.time(19))
         self.assertEqual(event.time_to,    dt.time(21,30))
-        self.assertEqual(event.tz.zone,    "America/New_York")
+        self.assertEqual(str(event.tz),    "America/New_York")
 
     @freeze_time("2018-02-01")
     @timezone.override("Pacific/Auckland")
@@ -287,7 +287,7 @@ END:VCALENDAR
             "therneramparcialues the the neshiplands tortandamength,  "
             "Comene ups a mitioney dend peachassfy de are to entices meand "
             "evelas of Friscerple th iseek arces a wind."]))
-        self.assertEqual(tueMorn.tz.zone,    "Pacific/Auckland")
+        self.assertEqual(str(tueMorn.tz),    "Pacific/Auckland")
         self.assertEqual(tueMorn.time_from,  dt.time(9,30))
         self.assertEqual(tueMorn.time_to,    dt.time(11,30))
         self.assertEqual(tueMorn.location,   "Coast Rd, Barrytown, New Zealand")
@@ -303,7 +303,7 @@ END:VCALENDAR
         self.assertEqual(tue24th.slug,       "2018-07-24-postponement")
         self.assertEqual(tue24th.title,      "Postponement for Tuesday 24th of July")
         self.assertEqual(tue24th.details,    tueMorn.details)
-        self.assertEqual(tue24th.tz.zone,    "Pacific/Auckland")
+        self.assertEqual(str(tue24th.tz),    "Pacific/Auckland")
         self.assertEqual(tue24th.except_date,dt.date(2018,7,24))
         self.assertEqual(tue24th.date,       dt.date(2018,7,25))
         self.assertEqual(tue24th.time_from,  dt.time(9,30))
@@ -318,7 +318,7 @@ END:VCALENDAR
         self.assertEqual(tue31st.extra_information, "\n".join(["",
             "Extra Famin fork, andivery,  Hough in the re of re whels "
             "otedshiplue porturat inve in nurectic."]))
-        self.assertEqual(tue31st.tz.zone,    "Pacific/Auckland")
+        self.assertEqual(str(tue31st.tz),    "Pacific/Auckland")
         self.assertEqual(tue31st.except_date,dt.date(2018,7,31))
 
         self.assertEqual(tue14th.owner,      self.user)
@@ -327,14 +327,14 @@ END:VCALENDAR
         self.assertEqual(tue14th.title,      "Cancellation for Tuesday 14th of August")
         self.assertEqual(tue14th.cancellation_title,   "")
         self.assertEqual(tue14th.cancellation_details, "")
-        self.assertEqual(tue14th.tz.zone,    "Pacific/Auckland")
+        self.assertEqual(str(tue14th.tz),    "Pacific/Auckland")
         self.assertEqual(tue14th.except_date,dt.date(2018,8,14))
 
         self.assertEqual(daysOff.owner,      self.user)
         self.assertEqual(daysOff.slug,       "three-days-off")
         self.assertEqual(daysOff.title,      "Three days off")
         self.assertEqual(daysOff.details,    "")
-        self.assertEqual(daysOff.tz.zone,    "Pacific/Auckland")
+        self.assertEqual(str(daysOff.tz),    "Pacific/Auckland")
         self.assertEqual(daysOff.date_from,  dt.date(2018,7,13))
         self.assertEqual(daysOff.time_from,  None)
         self.assertEqual(daysOff.date_to,    dt.date(2018,7,15))
@@ -345,7 +345,7 @@ END:VCALENDAR
         self.assertEqual(lilWeds.slug,       "little-wednesday")
         self.assertEqual(lilWeds.title,      "Little Wednesday")
         self.assertEqual(lilWeds.details,    "")
-        self.assertEqual(lilWeds.tz,         pytz.utc)
+        self.assertEqual(str(lilWeds.tz), "UTC")
         self.assertEqual(lilWeds.date,       dt.date(2018,7,17))
         self.assertEqual(lilWeds.time_from,  dt.time(22))
         self.assertEqual(lilWeds.time_to,    dt.time(22,30))
@@ -356,7 +356,7 @@ END:VCALENDAR
         self.assertEqual(cnfCall.slug,       "conference-call")
         self.assertEqual(cnfCall.title,      "Conference Call")
         self.assertEqual(cnfCall.details,    "")
-        self.assertEqual(cnfCall.tz,         pytz.utc)
+        self.assertEqual(str(cnfCall.tz), "UTC")
         self.assertEqual(cnfCall.date,       dt.date(2018,7,23))
         self.assertEqual(cnfCall.time_from,  dt.time(19))
         self.assertEqual(cnfCall.time_to,    dt.time(20))
@@ -367,7 +367,7 @@ END:VCALENDAR
         self.assertEqual(bigThur.details,
             "Hounit <b>catlike</b> at ethatial to thin a usistiques onshiend "
             "alits mily tente duse prommuniss ind sedships itommunte of perpollood.")
-        self.assertEqual(bigThur.tz,         pytz.utc)
+        self.assertEqual(str(bigThur.tz), "UTC")
         self.assertEqual(bigThur.date_from,  dt.date(2018,7,25))
         self.assertEqual(bigThur.time_from,  dt.time(21))
         self.assertEqual(bigThur.date_to,    dt.date(2018,7,26))
@@ -414,7 +414,7 @@ END:VCALENDAR
         self.assertEqual(bigThur.details,
             "Hounit <b>catlike</b> at ethatial to thin a usistiques onshiend "
             "alits mily tente duse prommuniss ind sedships itommunte of perpollood.")
-        self.assertEqual(bigThur.tz.zone,    "Australia/Sydney")
+        self.assertEqual(str(bigThur.tz),    "Australia/Sydney")
         self.assertEqual(bigThur.date_from,  dt.date(2018,7,26))
         self.assertEqual(bigThur.time_from,  dt.time(7))
         self.assertEqual(bigThur.date_to,    dt.date(2018,7,26))
@@ -507,7 +507,7 @@ END:VCALENDAR
             "", "Your outgoing route is Westport > Wellington.",
             "This route departs Westport on 30/Jul/2018 09:25 and arrives at "
             "Wellington at 10:15. The check-in time is 08:55.\n"]))
-        self.assertEqual(flight1.tz.zone,    "Asia/Tokyo")
+        self.assertEqual(str(flight1.tz),    "Asia/Tokyo")
         self.assertEqual(flight1.date,       dt.date(2018,7,30))
         self.assertEqual(flight1.time_from,  dt.time(9,25))
         self.assertEqual(flight1.time_to,    dt.time(10,15))
@@ -518,7 +518,7 @@ END:VCALENDAR
             "", "", "Your return route is Wellington > Westport.",
             "This route departs Wellington on 31/Jul/2018 08:15 and arrives at "
             "Westport at 09:00. The check-in time is 07:45.\n"]))
-        self.assertEqual(flight2.tz.zone,    "Asia/Tokyo")
+        self.assertEqual(str(flight2.tz),    "Asia/Tokyo")
         self.assertEqual(flight2.date,       dt.date(2018,7,31))
         self.assertEqual(flight2.time_from,  dt.time(8,15))
         self.assertEqual(flight2.time_to,    dt.time(9))
@@ -580,7 +580,7 @@ END:VCALENDAR
             "Details of the prize giving will be added here in due course, "
             "but save the date in the mean time.", "",
             "https://www.facebook.com/events/501511573641525/"]))
-        self.assertEqual(event.tz.zone,    "UTC")
+        self.assertEqual(str(event.tz),    "UTC")
         self.assertEqual(event.date,       dt.date(2018,8,31))
         self.assertEqual(event.time_from,  dt.time(7))
         self.assertEqual(event.time_to,    dt.time(10))
@@ -636,7 +636,7 @@ END:VCALENDAR""")
 
         self.assertIs(type(event),         RecurringEventPage)
         self.assertEqual(event.slug,       "exercise")
-        self.assertEqual(event.tz.zone,    "America/New_York")
+        self.assertEqual(str(event.tz),    "America/New_York")
         self.assertEqual(event.time_from,  dt.time(5))
         self.assertEqual(event.time_to,    dt.time(7))
         self.assertEqual(event.repeat.getCount(), 7)
@@ -695,7 +695,7 @@ END:VCALENDAR""")
 
         self.assertIs(type(event),         MultidayRecurringEventPage)
         self.assertEqual(event.title,      "Bought from a Rubber Man")
-        self.assertEqual(event.tz.zone,    "Pacific/Auckland")
+        self.assertEqual(str(event.tz),    "Pacific/Auckland")
         self.assertEqual(event.num_days,   3)
         self.assertEqual(event.time_from,  dt.time(16))
         self.assertEqual(event.time_to,    dt.time(18))
@@ -780,7 +780,7 @@ END:VCALENDAR""")
         self.assertIs(type(event),          MultidayRecurringEventPage)
         self.assertEqual(event.title,       "Colour In")
         self.assertEqual(event.details,     "<h2>Paint that scene.</h2>")
-        self.assertEqual(event.tz.zone,     "Pacific/Auckland")
+        self.assertEqual(str(event.tz),     "Pacific/Auckland")
         self.assertEqual(event.num_days,    2)
         self.assertEqual(event.time_from,   dt.time(10,30))
         self.assertEqual(event.time_to,     dt.time(14))

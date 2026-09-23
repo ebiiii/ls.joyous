@@ -192,11 +192,11 @@ class Test(TestCase):
     def testCancellationUrl(self):
         self.assertEqual(self.postponement.getCancellationUrl(self.request),
                          "/events/test-meeting/1990-10-10-postponement/from/")
-        was = wagtail.models.WAGTAIL_APPEND_SLASH
-        wagtail.models.WAGTAIL_APPEND_SLASH = False
+        was = wagtail.models.pages.WAGTAIL_APPEND_SLASH
+        wagtail.models.pages.WAGTAIL_APPEND_SLASH = False
         self.assertEqual(self.postponement.getCancellationUrl(self.request),
                          "/events/test-meeting/1990-10-10-postponement/from")
-        wagtail.models.WAGTAIL_APPEND_SLASH = was
+        wagtail.models.pages.WAGTAIL_APPEND_SLASH = was
 
 # ------------------------------------------------------------------------------
 class TestTZ(TestCase):

@@ -219,7 +219,7 @@ class TestTZ(TestCase):
     @timezone.override("Pacific/Auckland")
     def testPastLocalDt(self):
         when = self.event._past_datetime_from
-        self.assertEqual(when.tzinfo.zone, "Pacific/Auckland")
+        self.assertEqual(str(when.tzinfo), "Pacific/Auckland")
         self.assertEqual(when.time(), dt.time.max)
         self.assertEqual(when.date(), dt.date(2018,3,17))
 

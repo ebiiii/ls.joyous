@@ -9,11 +9,10 @@ from django.conf import settings
 from django.contrib.auth.models import User
 from django.utils import timezone
 from django.utils.formats import get_format
-from wagtail.admin.panels import get_form_for_model
+from wagtail.admin.panels.model_utils import get_edit_handler
 from wagtail.admin.widgets import AdminTimeInput, AdminDateInput
 from wagtail.models import Site, Page
-from ls.joyous.models.recurring_events import (CancellationPageForm,
-        RecurringEventPageForm, HiddenNumDaysPanel)
+from ls.joyous.models.recurring_events import HiddenNumDaysPanel
 from ls.joyous.models import (CalendarPage, CancellationPage,
         RecurringEventPage, MultidayRecurringEventPage)
 from ls.joyous.utils.recurrence import Recurrence, MONTHLY, YEARLY, TU, FR
@@ -24,6 +23,15 @@ import ls.joyous.edit_handlers
 import importlib
 from wagtail import VERSION as _wt_version
 WagtailVersion = _wt_version[:3]
+
+def bindPanel(panel, instance=None, request=None, form=None):
+    """
+    Modern Wagtail panels bind in two steps: bind_to_model then
+    get_bound_panel, rather than the old incremental bind_to() calls.
+    """
+    model = type(instance) if instance is not None else None
+    return panel.bind_to_model(model).get_bound_panel(
+        instance=instance, request=request, form=form)
 
 # ------------------------------------------------------------------------------
 class TestExceptionDatePanel(TestCase):
@@ -60,19 +68,18 @@ class TestExceptionDatePanel(TestCase):
         cancellation = CancellationPage(owner = self.user,
                                         except_date = dt.date(2019,1,21))
         panel = ExceptionDatePanel('except_date', classname='full-width')
-        panel = panel.bind_to(instance=cancellation)
+        panel = bindPanel(panel, instance=cancellation)
         self.assertIsNone(panel.form)
 
     @skipUnless(WagtailVersion >= (2, 5, 0), "Wagtail <2.5")
     def testBindWithoutOverrides25(self):
         cancellation = CancellationPage(owner = self.user,
                                         except_date = dt.date(2019,1,21))
-        Form = get_form_for_model(CancellationPage, form_class=CancellationPageForm)
+        Form = get_edit_handler(CancellationPage).get_form_class()
         form = Form(instance=cancellation, parent_page=self.event)
         panel = ExceptionDatePanel('except_date', classname='full-width')
-        panel = panel.bind_to(instance=cancellation)
-        panel = panel.bind_to(request=self._getRequest())
-        panel = panel.bind_to(form=form)
+        panel = bindPanel(panel, instance=cancellation,
+                          request=self._getRequest(), form=form)
         self.assertIsNotNone(panel.form)
         self.assertIsNone(panel.instance.overrides)
 
@@ -81,13 +88,12 @@ class TestExceptionDatePanel(TestCase):
         cancellation = CancellationPage(owner = self.user,
                                         overrides = self.event,
                                         except_date = dt.date(2019,1,21))
-        Form = get_form_for_model(CancellationPage, form_class=CancellationPageForm)
+        Form = get_edit_handler(CancellationPage).get_form_class()
         form = Form(instance=cancellation, parent_page=self.event)
         widget = form['except_date'].field.widget
         panel = ExceptionDatePanel('except_date', classname='full-width')
-        panel = panel.bind_to(instance=cancellation)
-        panel = panel.bind_to(request=self._getRequest())
-        panel = panel.bind_to(form=form)
+        panel = bindPanel(panel, instance=cancellation,
+                          request=self._getRequest(), form=form)
         self.assertIs(widget.overrides_repeat, self.event.repeat)
         self.assertIsNone(panel.exceptionTZ)
 
@@ -97,12 +103,11 @@ class TestExceptionDatePanel(TestCase):
         cancellation = CancellationPage(owner = self.user,
                                         overrides = self.event,
                                         except_date = dt.date(2019,1,21))
-        Form = get_form_for_model(CancellationPage, form_class=CancellationPageForm)
+        Form = get_edit_handler(CancellationPage).get_form_class()
         form = Form(instance=cancellation, parent_page=self.event)
         panel = ExceptionDatePanel('except_date', classname='full-width')
-        panel = panel.bind_to(instance=cancellation)
-        panel = panel.bind_to(request=self._getRequest())
-        panel = panel.bind_to(form=form)
+        panel = bindPanel(panel, instance=cancellation,
+                          request=self._getRequest(), form=form)
         self.assertEqual(panel.exceptionTZ, "Asia/Tokyo")
 
 # ------------------------------------------------------------------------------
@@ -163,32 +168,22 @@ class TestConcealedPanel(TestCase):
     @skipUnless(WagtailVersion >= (2, 5, 0), "Wagtail <2.5")
     def testConcealed25(self):
         panel = ConcealedPanel([], "Test")
-        panel = panel.bind_to(instance=self.event)
-        panel = panel.bind_to(request=self._getRequest())
-        content = panel.render()
-        self.assertEqual(content, "")
+        panel = bindPanel(panel, instance=self.event, request=self._getRequest())
+        self.assertFalse(panel.is_shown())
         self.assertEqual(panel.heading, "")
         self.assertEqual(panel.help_text, "")
 
     @skipUnless(WagtailVersion >= (2, 5, 0), "Wagtail <2.5")
     def testShown25(self):
         class ShownPanel(ConcealedPanel):
-            def _show(self):
+            def _show(self, bound_panel):
                 return True
 
         panel = ShownPanel([], "Test", help_text="Nothing")
-        panel = panel.bind_to(instance=self.event)
-        self.assertEqual(panel.heading, "")
-        self.assertEqual(panel.help_text, "")
-        panel = panel.bind_to(request=self._getRequest())
-        content = panel.render()
-        self.assertHTMLEqual(content, """
-<fieldset>
-    <legend>Test</legend>
-    <ul class="fields">
-    </ul>
-</fieldset>
-""")
+        panel = bindPanel(panel, instance=self.event, request=self._getRequest())
+        self.assertTrue(panel.is_shown())
+        content = panel.render_html()
+        self.assertIn("Nothing", content)
         self.assertEqual(panel.heading, "Test")
         self.assertEqual(panel.help_text, "Nothing")
 
@@ -251,8 +246,7 @@ class TestHiddenNumDaysPanel(TestCase):
                                         tz        = "Asia/Tokyo")
         self.calendar.add_child(instance=self.event)
         self.event.save_revision().publish()
-        Form = get_form_for_model(RecurringEventPage,
-                                  form_class=RecurringEventPageForm)
+        Form = get_edit_handler(RecurringEventPage).get_form_class()
         self.form = Form(instance=self.event, parent_page=self.calendar)
 
     def _getRequest(self):
@@ -264,22 +258,21 @@ class TestHiddenNumDaysPanel(TestCase):
 
     def testHidden(self):
         panel = HiddenNumDaysPanel()
-        panel = panel.bind_to(instance=self.event,
-                              request=self._getRequest(),
-                              form=self.form)
-        content = panel.render_as_object()
-        self.assertEqual(content, "")
-        content = panel.render_as_field()
-        self.assertEqual(content, "")
+        panel = bindPanel(panel, instance=self.event,
+                          request=self._getRequest(), form=self.form)
+        self.assertFalse(panel.is_shown())
 
     def testShowWith2Days(self):
         self.event.num_days = 2
+        Form = get_edit_handler(RecurringEventPage).get_form_class()
+        form = Form(instance=self.event, parent_page=self.calendar)
         panel = HiddenNumDaysPanel()
-        panel = panel.bind_to(instance=self.event,
-                              request=self._getRequest(),
-                              form=self.form)
-        content = panel.render_as_object()
-        self.assertHTMLEqual(content, self.FIELD_CONTENT)
+        panel = bindPanel(panel, instance=self.event,
+                          request=self._getRequest(), form=form)
+        self.assertTrue(panel.is_shown())
+        content = panel.render_html()
+        self.assertIn('name="num_days"', content)
+        self.assertIn('value="2"', content)
 
     def testShowMulidayRecurringEvent(self):
         event = MultidayRecurringEventPage(slug      = "leaders-retreat",
@@ -293,12 +286,15 @@ class TestHiddenNumDaysPanel(TestCase):
                                            tz        = "Asia/Tokyo")
         self.calendar.add_child(instance=event)
         event.save_revision().publish()
+        Form = get_edit_handler(MultidayRecurringEventPage).get_form_class()
+        form = Form(instance=event, parent_page=self.calendar)
         panel = HiddenNumDaysPanel()
-        panel = panel.bind_to(instance=event,
-                              request=self._getRequest(),
-                              form=self.form)
-        content = panel.render_as_object()
-        self.assertHTMLEqual(content, self.FIELD_CONTENT)
+        panel = bindPanel(panel, instance=event,
+                          request=self._getRequest(), form=form)
+        self.assertTrue(panel.is_shown())
+        content = panel.render_html()
+        self.assertIn('name="num_days"', content)
+        self.assertIn('value="3"', content)
 
 # ------------------------------------------------------------------------------
 # ------------------------------------------------------------------------------
